@@ -115,3 +115,148 @@ export async function scoreSeverity(imageBase64, description, category) {
     return { severity: 'Medium', priorityScore: 50, reasoning: 'AI severity scoring failed.' }
   }
 }
+
+/**
+ * CivicMind AI: Determine if a set of citizen reports describe the same real-world incident
+ * @param {object} newIssue - The newly submitted issue
+ * @param {array} candidates - Nearby issues that are candidates for fusion
+ * @returns {Promise<{isRelated, confidence, semanticScore, reasoning}>}
+ */
+export async function fuseIncidents(newIssue, candidates) {
+  if (!candidates || candidates.length === 0) {
+    return { isRelated: false, confidence: 0, semanticScore: 0, reasoning: 'No candidate reports nearby.' }
+  }
+  try {
+    const candidateSummary = candidates.slice(0, 8).map((c, i) => ({
+      index: i + 1,
+      title: c.title,
+      description: c.description?.slice(0, 150),
+      category: c.category,
+      severity: c.severity,
+    }))
+    const parts = [{
+      text: `You are CivicMind AI, an urban intelligence system. Analyse if these citizen reports are describing the SAME real-world civic incident.
+
+New Report:
+Title: "${newIssue.title}"
+Description: "${newIssue.description?.slice(0, 200)}"
+Category: ${newIssue.category}
+
+Existing Reports in the same area:
+${JSON.stringify(candidateSummary, null, 2)}
+
+Return JSON only (no markdown, no explanation):
+{
+  "isRelated": boolean,
+  "bestMatchIndex": number or null (1-indexed, which existing report best matches),
+  "confidence": 0-100,
+  "semanticScore": 0-100,
+  "incidentTitle": "suggested unified incident title if related",
+  "reasoning": "one sentence explaining the fusion decision"
+}`,
+    }]
+    const raw = await callGemini(parts)
+    if (!raw) return { isRelated: false, confidence: 0, semanticScore: 0, reasoning: 'Fusion analysis unavailable.' }
+    return parseJSON(raw)
+  } catch (err) {
+    console.error('fuseIncidents error:', err)
+    return { isRelated: false, confidence: 0, semanticScore: 0, reasoning: 'Fusion analysis failed.' }
+  }
+}
+
+/**
+ * CivicMind AI: Generate action recommendations for an incident
+ * @param {object} incident - Incident data
+ * @param {array} relatedReports - Array of related issue descriptions
+ * @returns {Promise<{recommendations: [{action, timeframe, priority}]}>}
+ */
+export async function generateRecommendations(incident, relatedReports) {
+  try {
+    const reportSummary = relatedReports.slice(0, 5).map(r => r.description?.slice(0, 100)).filter(Boolean)
+    const parts = [{
+      text: `You are CivicMind AI advising city authorities. Generate a clear action plan for this civic incident.
+
+Incident: "${incident.title}"
+Category: ${incident.category}
+Severity: ${incident.severity}
+Related citizen reports (${relatedReports.length} total):
+${reportSummary.map((d, i) => `${i + 1}. "${d}"`).join('\n')}
+
+Return JSON only (no markdown):
+{
+  "recommendations": [
+    { "action": "specific actionable step", "timeframe": "e.g. Within 24 hours", "priority": "Urgent|High|Normal" },
+    { "action": "...", "timeframe": "...", "priority": "..." }
+  ]
+}
+
+Provide 4-6 specific, actionable recommendations based on the actual reports.`,
+    }]
+    const raw = await callGemini(parts)
+    if (!raw) return { recommendations: getDefaultRecommendations(incident.category) }
+    const parsed = parseJSON(raw)
+    return parsed?.recommendations ? parsed : { recommendations: getDefaultRecommendations(incident.category) }
+  } catch (err) {
+    console.error('generateRecommendations error:', err)
+    return { recommendations: getDefaultRecommendations(incident.category) }
+  }
+}
+
+/**
+ * CivicMind AI: Generate human-readable explanation of why reports were fused
+ * @param {object} incident - The incident
+ * @param {array} relatedIssues - Related issue summaries with scores
+ * @returns {Promise<string>} - Explanation paragraph
+ */
+export async function explainIncident(incident, relatedIssues) {
+  try {
+    const parts = [{
+      text: `You are CivicMind AI. Explain in 2-3 sentences why these citizen reports were grouped into a single incident.
+
+Incident: "${incident.title}"
+Category: ${incident.category}
+Number of reports: ${relatedIssues.length}
+Geographic radius: ~${(incident.radius_km || 0.5).toFixed(1)} km
+Average semantic similarity: ${Math.round(relatedIssues.reduce((s, r) => s + (r.semantic_score || 0), 0) / (relatedIssues.length || 1))}%
+
+Explain clearly and concisely why the AI identified this as a single underlying incident. Mention the key signals (location, time, semantic similarity, category). Write for a city official reading a report. No bullet points, plain text only.`,
+    }]
+    const raw = await callGemini(parts)
+    if (!raw) return `These ${relatedIssues.length} reports were grouped because they describe similar ${incident.category} issues in the same geographic area within a short time window.`
+    return raw.trim()
+  } catch (err) {
+    console.error('explainIncident error:', err)
+    return `These reports were grouped by AI based on semantic similarity, geographic proximity, and temporal correlation.`
+  }
+}
+
+function getDefaultRecommendations(category) {
+  const defaults = {
+    Roads: [
+      { action: 'Dispatch road inspection team to assess damage', timeframe: 'Within 24 hours', priority: 'Urgent' },
+      { action: 'Place temporary warning signage and barricades', timeframe: 'Within 4 hours', priority: 'Urgent' },
+      { action: 'Schedule road repair work', timeframe: 'Within 72 hours', priority: 'High' },
+      { action: 'Monitor for additional related reports', timeframe: 'Ongoing', priority: 'Normal' },
+    ],
+    Water: [
+      { action: 'Dispatch water department to inspect pipeline', timeframe: 'Within 24 hours', priority: 'Urgent' },
+      { action: 'Arrange alternate water supply if needed', timeframe: 'Within 48 hours', priority: 'High' },
+      { action: 'Repair or replace damaged infrastructure', timeframe: 'Within 72 hours', priority: 'High' },
+    ],
+    Electricity: [
+      { action: 'Dispatch electrician team to inspect fault', timeframe: 'Within 12 hours', priority: 'Urgent' },
+      { action: 'Restore power supply', timeframe: 'Within 24 hours', priority: 'Urgent' },
+      { action: 'Inspect surrounding infrastructure for damage', timeframe: 'Within 48 hours', priority: 'High' },
+    ],
+    Sanitation: [
+      { action: 'Dispatch sanitation crew to clear waste', timeframe: 'Within 24 hours', priority: 'High' },
+      { action: 'Inspect and clear drainage blockage', timeframe: 'Within 48 hours', priority: 'High' },
+      { action: 'Schedule regular pickup for affected area', timeframe: 'Ongoing', priority: 'Normal' },
+    ],
+  }
+  return defaults[category] || [
+    { action: 'Investigate reported issue', timeframe: 'Within 48 hours', priority: 'High' },
+    { action: 'Take corrective action based on findings', timeframe: 'Within 72 hours', priority: 'Normal' },
+    { action: 'Monitor for further reports', timeframe: 'Ongoing', priority: 'Normal' },
+  ]
+}

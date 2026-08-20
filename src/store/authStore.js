@@ -20,6 +20,8 @@ const useAuthStore = create(
         if (session?.user) {
           set({ user: session.user })
           await get().fetchProfile(session.user.id)
+        } else {
+          set({ user: null, profile: null })
         }
         set({ loading: false, initialized: true })
 
@@ -35,16 +37,33 @@ const useAuthStore = create(
       },
 
       fetchProfile: async (userId) => {
-        const { data, error } = await supabase
+        let { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', userId)
-          .single()
-        if (error) { console.error('fetchProfile error:', error); return }
-        set({ profile: data })
+          .maybeSingle()
+
+        if (!data) {
+          // Retry once in case trigger was slightly delayed during signup
+          await new Promise(r => setTimeout(r, 400))
+          const retry = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
+          data = retry.data
+        }
+
+        if (data) {
+          console.info('[AUTH USER]', { id: data.id, email: data.email, role: data.role })
+          set({ profile: data })
+        } else if (error) {
+          console.error('fetchProfile error:', error)
+          set({ profile: { id: userId, role: 'citizen' } })
+        } else {
+          console.info('[AUTH USER] Profile row missing, defaulting to citizen for id:', userId)
+          set({ profile: { id: userId, role: 'citizen' } })
+        }
       },
 
       login: async (email, password) => {
+        set({ profile: null })
         const { data, error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
         set({ user: data.user })
@@ -53,13 +72,13 @@ const useAuthStore = create(
       },
 
       register: async (email, password, name) => {
+        set({ profile: null })
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: { data: { name } },
         })
         if (error) throw error
-        // If email confirmation is disabled, session is returned immediately
         if (data.session) {
           set({ user: data.user })
           await get().fetchProfile(data.user.id)
@@ -87,6 +106,8 @@ const useAuthStore = create(
       },
 
       isAdmin: () => get().profile?.role === 'admin',
+      isAuthority: () => get().profile?.role === 'authority',
+      isAdminOrAuthority: () => ['admin', 'authority'].includes(get().profile?.role),
     }),
     {
       name: 'civiceye-auth',

@@ -7,6 +7,7 @@ import { compressImage, fileToBase64, formatBytes } from '../utils/imageCompress
 import { CATEGORIES } from '../utils/constants'
 import { createIssue, uploadIssueMedia, fetchNearbyIssues } from '../services/issues'
 import { categorizeIssue, scoreSeverity, checkDuplicate } from '../services/gemini'
+import { runIncidentFusion } from '../services/incidentFusion'
 import useAuthStore from '../store/authStore'
 import useGeolocation from '../hooks/useGeolocation'
 import DuplicateModal from '../components/issues/DuplicateModal'
@@ -194,6 +195,20 @@ export default function ReportIssue() {
       const created = await createIssue(issueData)
       toast.success('🎉 Issue reported! +10 points earned')
       navigate(`/issues/${created.id}`)
+
+      // ── CivicMind AI: Trigger Incident Fusion asynchronously ──
+      // Does NOT block the user — fires in background after navigation
+      if (created?.id) {
+        setTimeout(() => {
+          runIncidentFusion(created)
+            .then(result => {
+              if (result.action !== 'error' && result.action !== 'skipped') {
+                console.info('[CivicMind AI] Incident fusion:', result)
+              }
+            })
+            .catch(err => console.error('[CivicMind AI] Fusion error:', err))
+        }, 500)
+      }
     } catch (err) {
       console.error('Submit error:', err)
       toast.error('Failed to submit issue. Please try again.')

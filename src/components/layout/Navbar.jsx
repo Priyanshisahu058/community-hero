@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { Menu, X, Eye, LogOut, User, BarChart2, MapPin, Plus } from 'lucide-react'
+import { Menu, X, Eye, LogOut, User, BarChart2, MapPin, Plus, Brain, Building2 } from 'lucide-react'
 import NotificationBell from './NotificationBell'
 import useAuthStore from '../../store/authStore'
 import toast from 'react-hot-toast'
@@ -21,6 +21,7 @@ export default function Navbar() {
   const navLinks = [
     { to: '/', label: 'Feed' },
     { to: '/map', label: 'Map', icon: <MapPin size={14} /> },
+    { to: '/intelligence', label: 'City Intelligence', icon: <Brain size={14} />, ai: true },
     { to: '/report', label: 'Report Issue', highlight: true },
   ]
 
@@ -49,6 +50,10 @@ export default function Navbar() {
                 className={`flex items-center gap-1.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                   link.highlight
                     ? 'btn-glow px-6 py-2.5 bg-teal-600 text-white hover:bg-teal-700 shadow-lg shadow-teal-600/30 font-semibold'
+                    : link.ai
+                    ? isActive(link.to)
+                      ? 'px-4 py-2 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400'
+                      : 'px-4 py-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 font-semibold'
                     : isActive(link.to)
                     ? 'px-4 py-2 bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
                     : 'px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -56,6 +61,7 @@ export default function Navbar() {
               >
                 {link.highlight ? <Plus size={16} strokeWidth={2.5} /> : link.icon}
                 {link.label}
+                {link.ai && <span className="text-[9px] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full font-bold tracking-wide">AI</span>}
               </Link>
             ))}
             {profile?.role === 'admin' && (
@@ -69,6 +75,19 @@ export default function Navbar() {
               >
                 <BarChart2 size={14} />
                 Admin Dashboard
+              </Link>
+            )}
+            {profile?.role === 'authority' && (
+              <Link
+                to="/authority"
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                  isActive('/authority')
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/25'
+                    : 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 ring-1 ring-blue-200 dark:ring-blue-800'
+                }`}
+              >
+                <Building2 size={14} />
+                Authority Dashboard
               </Link>
             )}
           </div>
@@ -134,6 +153,10 @@ export default function Navbar() {
                   className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                     link.highlight
                       ? 'btn-glow bg-teal-600 text-white font-semibold'
+                      : link.ai
+                      ? isActive(link.to)
+                        ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400'
+                        : 'text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 font-semibold'
                       : isActive(link.to)
                       ? 'bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -141,11 +164,17 @@ export default function Navbar() {
                 >
                   {link.highlight ? <Plus size={16} strokeWidth={2.5} /> : link.icon}
                   {link.label}
+                  {link.ai && <span className="text-[9px] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-1.5 py-0.5 rounded-full font-bold ml-auto">AI</span>}
                 </Link>
               ))}
               {profile?.role === 'admin' && (
                 <Link to="/admin" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 ring-1 ring-teal-200 dark:ring-teal-800">
                   <BarChart2 size={16} /> Admin Dashboard
+                </Link>
+              )}
+              {profile?.role === 'authority' && (
+                <Link to="/authority" onClick={() => setMobileOpen(false)} className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 ring-1 ring-blue-200 dark:ring-blue-800">
+                  <Building2 size={16} /> Authority Dashboard
                 </Link>
               )}
               {user ? (

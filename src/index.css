@@ -70,3 +70,95 @@ input:focus, textarea:focus, select:focus, button:focus-visible {
 }
 .animate-fade-in { animation: fade-in 0.3s ease-out both; }
 
+/* ── CivicMind AI new animations ── */
+
+/* Pulse ring for critical incidents */
+@keyframes pulse-ring {
+  0%   { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.5); }
+  70%  { transform: scale(1);    box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+.animate-pulse-ring { animation: pulse-ring 2s ease-out infinite; }
+
+/* Slide in from left */
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-left { animation: slide-in-left 0.35s ease-out both; }
+
+/* Slide in from right */
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-right { animation: slide-in-right 0.35s ease-out both; }
+
+/* Shimmer loading skeleton */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+.dark .animate-shimmer {
+  background: linear-gradient(90deg, #1f2937 25%, #374151 50%, #1f2937 75%);
+  background-size: 200% 100%;
+}
+
+/* AI glow pulse for intelligence UI elements */
+@keyframes ai-glow {
+  0%, 100% { box-shadow: 0 0 8px 2px rgba(99, 102, 241, 0.3); }
+  50%       { box-shadow: 0 0 20px 6px rgba(99, 102, 241, 0.6); }
+}
+.ai-glow { animation: ai-glow 2.5s ease-in-out infinite; }
+
+/* Counter spin-up (for stat numbers) */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-count { animation: count-up 0.5s ease-out both; }
+
+/* Fusion connector pulse */
+@keyframes flow-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1; }
+}
+.animate-flow { animation: flow-pulse 1.5s ease-in-out infinite; }
+
+/* Priority bar fill */
+@keyframes fill-bar {
+  from { width: 0%; }
+}
+.animate-fill { animation: fill-bar 1s ease-out both; }
+
+/* Stagger delay utilities */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+
+/* Glass card effect for dashboard */
+.glass-card {
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.3);
+}
+.dark .glass-card {
+  background: rgba(17,24,39,0.8);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Intelligence gradient heading */
+.gradient-text {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

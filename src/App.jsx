@@ -12,8 +12,13 @@ import Profile from './pages/Profile'
 import AdminDashboard from './pages/AdminDashboard'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import AuthorityDashboard from './pages/AuthorityDashboard'
 import useAuthStore from './store/authStore'
 import EmergencyModal from './components/ui/EmergencyModal'
+// ── CivicMind AI pages (QuantumHacks) ──
+import CityIntelligence from './pages/CityIntelligence'
+import IncidentDetail from './pages/IncidentDetail'
+import EvaluationMode from './pages/EvaluationMode'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,23 +37,53 @@ function AuthGuard({ children }) {
   return children
 }
 
-/** Guard for admin-only routes — redirects with toast if not admin */
+/** Guard for admin-only routes */
 function AdminGuard({ children }) {
   const { user, profile, loading } = useAuthStore()
-  const navigate = useNavigate()
 
-  useEffect(() => {
-    if (!loading && user && profile && profile.role !== 'admin') {
-      toast.error('Access denied — Admins only', { icon: '🚫' })
-      navigate('/', { replace: true })
-    }
-    if (!loading && !user) {
-      navigate('/login', { replace: true })
-    }
-  }, [loading, user, profile, navigate])
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
 
-  if (loading || !profile) return null
-  if (profile.role !== 'admin') return null
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  const role = profile?.role || 'citizen'
+
+  if (role !== 'admin') {
+    return <Navigate to={role === 'authority' ? "/authority" : "/"} replace />
+  }
+
+  return children
+}
+
+/** Guard for authority-only routes */
+function AuthorityGuard({ children }) {
+  const { user, profile, loading } = useAuthStore()
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
+
+  const role = profile?.role || 'citizen'
+
+  if (role !== 'authority') {
+    return <Navigate to={role === 'admin' ? "/admin" : "/"} replace />
+  }
+
   return children
 }
 
@@ -70,8 +105,13 @@ function AppRoutes() {
           <Route path="/issues/:id" element={<IssueDetail />} />
           <Route path="/profile" element={<AuthGuard><Profile /></AuthGuard>} />
           <Route path="/admin" element={<AdminGuard><AdminDashboard /></AdminGuard>} />
+          <Route path="/authority" element={<AuthorityGuard><AuthorityDashboard /></AuthorityGuard>} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          {/* ── CivicMind AI routes (QuantumHacks) ── */}
+          <Route path="/intelligence" element={<CityIntelligence />} />
+          <Route path="/incidents/:id" element={<IncidentDetail />} />
+          <Route path="/intelligence/evaluate" element={<EvaluationMode />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
@@ -97,11 +137,18 @@ function AppRoutes() {
       />
       <EmergencyModal />
       {/* Global Footer */}
-      <footer className="mt-auto py-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
-        <p className="text-center text-xs text-gray-400">
-          © 2026 CivicEye. Built for{' '}
-          <span className="font-semibold text-teal-600">BlockseBlock Hackathon</span>.
-        </p>
+      <footer className="mt-auto py-5 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <p className="text-xs text-gray-400">
+            © 2026 <span className="font-bold text-indigo-600">CivicMind AI</span> — built on Community Hero Foundation
+          </p>
+          <p className="text-xs text-gray-400">
+            Built for{' '}
+            <span className="font-semibold text-indigo-600">QuantumHacks 2026</span>
+            {' · '}
+            <span className="text-teal-600 font-medium">"From citizen reports to city-level intelligence"</span>
+          </p>
+        </div>
       </footer>
     </div>
   )
